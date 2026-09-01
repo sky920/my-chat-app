@@ -8,9 +8,11 @@ const MAX_HISTORY = 20
 const IS_PROD = import.meta.env.PROD
 
 export function hasApiKey(): boolean {
-  // 生产环境通过 Serverless Function 代理，Key 在服务端
+  // 优先使用前端注入的 Key（本地开发 / GitHub Pages 等静态托管）
+  if (API_KEY && API_KEY !== 'sk-your-key-here') return true
+  // 生产环境降级：通过 /api/chat 服务端代理（仅 Vercel/Cloudflare 等支持）
   if (IS_PROD) return true
-  return Boolean(API_KEY && API_KEY !== 'sk-your-key-here')
+  return false
 }
 
 interface ChatMessage {
@@ -43,22 +45,48 @@ export async function fetchChat(
 ): Promise<string> {
   const messages = buildMessages(systemPrompt, history, userMessage)
 
-  // 生产环境：通过 /api/chat 代理调用，API Key 不暴露给前端
+  // 策略 1：前端已注入 API Key → 直接调用 DeepSeek（适用于本地开发 / GitHub Pages 等静态托管）
+  // 注：静态托管没有服务端，Key 会被打进 bundle；请仅在自己可信的私有仓库使用
+  if (API_KEY && API_KEY !== 'sk-your-key-here') {
+    return callDeepSeekDirect(messages, signal)
+  }
+
+  // 策略 2：生产环境且无前端 Key → 尝试通过 /api/chat 服务端代理
+  // Vercel / Cloudflare Pages Functions 等支持此路由；GitHub Pages 纯静态会 404
   if (IS_PROD) {
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages }),
-      signal,
-    })
-    return parseResponse(response)
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages }),
+        signal,
+      })
+      if (!response.ok && (response.status === 404 || response.status === 405)) {
+        // 当前部署平台是纯静态托管（如 GitHub Pages），没有 /api/chat 服务端路由
+        throw new Error(
+          '当前部署平台不支持服务端代理。请在构建时设置环境变量 VITE_DEEPSEEK_API_KEY，' +
+            '或使用 Vercel / Cloudflare Pages 等支持 Serverless Functions 的平台。',
+        )
+      }
+      return parseResponse(response)
+    } catch (err) {
+      // 网络失败或 404，给用户一个更明确的错误提示
+      if (err instanceof Error && err.message.includes('Failed to fetch')) {
+        throw new Error(
+          'API 请求失败：请确认已在部署时注入 VITE_DEEPSEEK_API_KEY 环境变量，' +
+            '或使用支持 /api 代理的托管平台（Vercel / Cloudflare Pages）。',
+        )
+      }
+      throw err
+    }
   }
 
-  // 本地开发：无 Key 时使用 mock 回复
-  if (!hasApiKey()) {
-    return fetchMockReply(userMessage, signal)
-  }
+  // 本地开发，且未配置 Key → 使用 mock 回复
+  return fetchMockReply(userMessage, signal)
+}
 
+/** 直连 DeepSeek API 发送请求（使用前端注入的 Bearer Token） */
+async function callDeepSeekDirect(messages: ChatMessage[], signal?: AbortSignal): Promise<string> {
   const response = await fetch(`${BASE_URL}/chat/completions`, {
     method: 'POST',
     headers: {
@@ -75,7 +103,6 @@ export async function fetchChat(
     }),
     signal,
   })
-
   return parseResponse(response)
 }
 
