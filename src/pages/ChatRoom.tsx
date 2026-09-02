@@ -19,9 +19,14 @@ export function ChatRoom() {
   )
   const addMessage = useChatStore((s) => s.addMessage)
   const clearHistory = useChatStore((s) => s.clearHistory)
+  const getCustomPrompt = useChatStore((s) => s.getCustomPrompt)
+  const setCustomPrompt = useChatStore((s) => s.setCustomPrompt)
+  const resetCustomPrompt = useChatStore((s) => s.resetCustomPrompt)
 
   const [input, setInput] = useState('')
   const [isSending, setIsSending] = useState(false)
+  const [showMorePanel, setShowMorePanel] = useState(false)
+  const [promptDraft, setPromptDraft] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const pendingRetryRef = useRef<string | null>(null)
@@ -54,7 +59,7 @@ export function ChatRoom() {
 
       try {
         const reply = await fetchChat(
-          character.systemPrompt,
+          getCustomPrompt(characterId) ?? character.systemPrompt,
           character.timezone,
           history,
           userText,
@@ -131,6 +136,33 @@ export function ChatRoom() {
     clearHistory(characterId)
   }
 
+  /** 打开更多面板，初始化编辑区为当前生效的 systemPrompt */
+  const handleOpenMore = () => {
+    playSound('tap')
+    const custom = getCustomPrompt(characterId)
+    setPromptDraft(custom ?? character.systemPrompt)
+    setShowMorePanel(true)
+  }
+
+  /** 保存编辑后的 systemPrompt */
+  const handleSavePrompt = () => {
+    playSound('tap')
+    const trimmed = promptDraft.trim()
+    if (trimmed && trimmed !== character.systemPrompt) {
+      setCustomPrompt(characterId, trimmed)
+    } else {
+      resetCustomPrompt(characterId)
+    }
+    setShowMorePanel(false)
+  }
+
+  /** 恢复默认 systemPrompt */
+  const handleResetPrompt = () => {
+    playSound('tap')
+    resetCustomPrompt(characterId)
+    setPromptDraft(character.systemPrompt)
+  }
+
   return (
     <div className={styles.page}>
       <header className={styles.header}>
@@ -180,7 +212,7 @@ export function ChatRoom() {
               />
             </svg>
           </button>
-          <button type="button" className={styles.headerActionBtn} aria-label="更多">
+          <button type="button" className={styles.headerActionBtn} onClick={handleOpenMore} aria-label="更多">
             <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
               <path
                 d="M5 7h14M5 12h14M5 17h14"
@@ -226,6 +258,59 @@ export function ChatRoom() {
       </div>
 
       <ChatInput value={input} onChange={setInput} onSend={handleSend} disabled={isSending} />
+
+      {/* 更多面板：编辑角色 systemPrompt */}
+      {showMorePanel && (
+        <div className={styles.moreOverlay} onClick={() => setShowMorePanel(false)}>
+          <div className={styles.morePanel} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.moreHeader}>
+              <span className={styles.moreTitle}>角色设定</span>
+              <button
+                type="button"
+                className={styles.moreClose}
+                onClick={() => setShowMorePanel(false)}
+                aria-label="关闭"
+              >
+                <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                  <path
+                    d="M6 6l12 12M18 6L6 18"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </button>
+            </div>
+            <p className={styles.moreDesc}>
+              修改「{character.name}」的性格设定，保存后下一条消息生效。留空或改回原文则恢复默认。
+            </p>
+            <textarea
+              className={styles.promptEditor}
+              value={promptDraft}
+              onChange={(e) => setPromptDraft(e.target.value)}
+              rows={10}
+              autoFocus
+            />
+            <div className={styles.moreActions}>
+              <button
+                type="button"
+                className={styles.resetBtn}
+                onClick={handleResetPrompt}
+              >
+                恢复默认
+              </button>
+              <button
+                type="button"
+                className={styles.saveBtn}
+                onClick={handleSavePrompt}
+              >
+                保存
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

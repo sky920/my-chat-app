@@ -21,6 +21,8 @@ interface CharacterChat {
 
 interface ChatState {
   chats: Record<string, CharacterChat>
+  /** 每个角色自定义的 systemPrompt（用户在更多面板编辑后保存） */
+  customPrompts: Record<string, string>
   addMessage: (
     characterId: string,
     message: Omit<Message, 'id' | 'timestamp'> & { id?: string; timestamp?: number },
@@ -30,6 +32,12 @@ interface ChatState {
   getMessages: (characterId: string) => Message[]
   getLastPreview: (characterId: string) => string
   getLastTimestamp: (characterId: string) => number | null
+  /** 保存某角色的自定义 systemPrompt */
+  setCustomPrompt: (characterId: string, prompt: string) => void
+  /** 恢复某角色的默认 systemPrompt */
+  resetCustomPrompt: (characterId: string) => void
+  /** 获取某角色当前生效的 systemPrompt（自定义优先） */
+  getCustomPrompt: (characterId: string) => string | undefined
 }
 
 function generateId(): string {
@@ -48,6 +56,7 @@ export const useChatStore = create<ChatState>()(
   persist(
     (set, get) => ({
       chats: Object.fromEntries(characters.map((c) => [c.id, emptyChat()])),
+      customPrompts: {},
 
       addMessage: (characterId, message) => {
         const id = message.id ?? generateId()
@@ -127,6 +136,22 @@ export const useChatStore = create<ChatState>()(
         const messages = ensureChat(get().chats, characterId).messages
         return messages[messages.length - 1]?.timestamp ?? null
       },
+
+      setCustomPrompt: (characterId, prompt) => {
+        set((state) => ({
+          customPrompts: { ...state.customPrompts, [characterId]: prompt },
+        }))
+      },
+
+      resetCustomPrompt: (characterId) => {
+        set((state) => {
+          const next = { ...state.customPrompts }
+          delete next[characterId]
+          return { customPrompts: next }
+        })
+      },
+
+      getCustomPrompt: (characterId) => get().customPrompts[characterId],
     }),
     {
       name: 'line-chat-storage',

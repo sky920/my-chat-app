@@ -413,3 +413,133 @@
 .incomplete {
   opacity: 0.75;
 }
+
+/* ===== 更多面板：编辑角色设定 ===== */
+.moreOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.morePanel {
+  width: 100%;
+  max-width: 480px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  background: rgba(30, 30, 30, 0.95);
+  border-radius: 20px 20px 0 0;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0));
+  animation: slideUp 0.25s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.moreHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.moreTitle {
+  font-size: 17px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.moreClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  color: #ffffff99;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.moreClose:active {
+  color: #ffffff;
+}
+
+.moreDesc {
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #ffffff80;
+}
+
+.promptEditor {
+  flex: 1;
+  min-height: 180px;
+  max-height: 50vh;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #ffffff;
+  resize: none;
+  overflow-y: auto;
+  font-family: inherit;
+}
+
+.promptEditor:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.promptEditor::placeholder {
+  color: #ffffff40;
+}
+
+.moreActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.resetBtn {
+  flex: 1;
+  height: 42px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffffcc;
+  font-size: 15px;
+  font-weight: 500;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.resetBtn:active {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.saveBtn {
+  flex: 1;
+  height: 42px;
+  border-radius: 12px;
+  background: #2f7cf6;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.saveBtn:active {
+  background: #1a6ce8;
+}
