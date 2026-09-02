@@ -1,4 +1,5 @@
 import type { Message } from '../stores/chatStore'
+import { buildSystemPrompt } from '../utils/characterContext'
 import { fetchMockReply } from './mockChat'
 
 const API_KEY = import.meta.env.VITE_DEEPSEEK_API_KEY as string | undefined
@@ -20,7 +21,12 @@ interface ChatMessage {
   content: string
 }
 
-function buildMessages(systemPrompt: string, history: Message[], userMessage: string): ChatMessage[] {
+function buildMessages(
+  systemPrompt: string,
+  timezone: string,
+  history: Message[],
+  userMessage: string,
+): ChatMessage[] {
   const recent = history
     .filter((m) => m.role === 'user' || m.role === 'assistant')
     .slice(-MAX_HISTORY)
@@ -30,7 +36,7 @@ function buildMessages(systemPrompt: string, history: Message[], userMessage: st
     }))
 
   return [
-    { role: 'system', content: systemPrompt },
+    { role: 'system', content: buildSystemPrompt(systemPrompt, timezone) },
     ...recent,
     { role: 'user', content: userMessage },
   ]
@@ -39,11 +45,12 @@ function buildMessages(systemPrompt: string, history: Message[], userMessage: st
 /** 一次性返回完整回复（非流式），像微信一样整句出现 */
 export async function fetchChat(
   systemPrompt: string,
+  timezone: string,
   history: Message[],
   userMessage: string,
   signal?: AbortSignal,
 ): Promise<string> {
-  const messages = buildMessages(systemPrompt, history, userMessage)
+  const messages = buildMessages(systemPrompt, timezone, history, userMessage)
 
   // 策略 1：前端已注入 API Key → 直接调用 DeepSeek（适用于本地开发 / GitHub Pages 等静态托管）
   // 注：静态托管没有服务端，Key 会被打进 bundle；请仅在自己可信的私有仓库使用

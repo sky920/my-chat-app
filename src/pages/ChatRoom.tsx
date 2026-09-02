@@ -55,6 +55,7 @@ export function ChatRoom() {
       try {
         const reply = await fetchChat(
           character.systemPrompt,
+          character.timezone,
           history,
           userText,
           abortRef.current.signal,
