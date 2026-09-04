@@ -1,4 +1,4 @@
-import { useRef, type KeyboardEvent } from 'react'
+import { useEffect, useRef, type KeyboardEvent } from 'react'
 import styles from '../styles/chat-room.module.css'
 
 interface ChatInputProps {
@@ -20,13 +20,18 @@ export function ChatInput({ value, onChange, onSend, disabled }: ChatInputProps)
     }
   }
 
-  const handleInput = () => {
+  const autoResize = () => {
     const el = textareaRef.current
     if (el) {
       el.style.height = 'auto'
       el.style.height = `${Math.min(el.scrollHeight, 120)}px`
     }
   }
+
+  // value 变化时自动调整高度（发送后清空会恢复单行）
+  useEffect(() => {
+    autoResize()
+  }, [value])
 
   return (
     <div className={styles.inputArea}>
@@ -55,7 +60,6 @@ export function ChatInput({ value, onChange, onSend, disabled }: ChatInputProps)
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
-        onInput={handleInput}
         placeholder="输入消息"
         rows={1}
         disabled={disabled}
@@ -67,8 +71,8 @@ export function ChatInput({ value, onChange, onSend, disabled }: ChatInputProps)
         disabled={disabled || !value.trim()}
         aria-label="发送"
       >
-        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+        <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">
+          <path d="M3 20.5L21.5 12 3 3.5 3.2 9.8 15 12 3.2 14.2z" />
         </svg>
       </button>
     </div>

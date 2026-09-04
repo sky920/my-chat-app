@@ -56,3 +56,16 @@ export async function fetchMockReply(userMessage: string, signal?: AbortSignal):
   await delay(500 + Math.random() * 400, signal)
   return getMockReply(userMessage)
 }
+
+const MOCK_MOMENTS = [
+  '今天天气真好，出去走走～',
+  '刚下班，好累但是很开心',
+  '今天的咖啡拉花成功了一次！',
+  '周末去了个新地方，人不多很安静',
+  '突然下雨了…还好带了伞',
+]
+
+export async function fetchMockMoment(signal?: AbortSignal): Promise<string> {
+  await delay(500 + Math.random() * 400, signal)
+  return MOCK_MOMENTS[Math.floor(Math.random() * MOCK_MOMENTS.length)]!
+}

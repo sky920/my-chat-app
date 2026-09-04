@@ -1,0 +1,103 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  background: #ffffff;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 50px;
+  padding: 0 16px;
+  padding-top: env(safe-area-inset-top, 0);
+  background: #ffffff;
+  border-bottom: 1px solid #eeeeee;
+  flex-shrink: 0;
+}
+
+.headerTitle {
+  font-size: 20px;
+  color: #000000;
+}
+
+.list {
+  flex: 1;
+  overflow-y: auto;
+  background: #f7f7f7;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 8px;
+  color: #999999;
+  font-size: 16px;
+}
+
+.emptyHint {
+  font-size: 14px;
+  color: #bbbbbb;
+}
+
+.momentItem {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 20px;
+  background: #ffffff;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.momentHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #eeeeee;
+}
+
+.momentMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.momentName {
+  font-size: 16px;
+  font-weight: 600;
+  color: #576b95;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.momentName:active {
+  opacity: 0.7;
+}
+
+.momentTime {
+  font-size: 13px;
+  color: #999999;
+}
+
+.momentContent {
+  font-size: 17px;
+  line-height: 1.6;
+  color: #333333;
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding-left: 54px;
+}

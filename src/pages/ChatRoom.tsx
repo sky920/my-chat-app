@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { getCharacter } from '../characters'
+import { MOMENTS_CHARACTERS } from '../characters/momentsList'
 import { ChatInput } from '../components/ChatInput'
 import { MessageBubble } from '../components/MessageBubble'
-import { fetchChat, hasApiKey } from '../services/deepseek'
+import { fetchChat, fetchMoment, hasApiKey } from '../services/deepseek'
 import { useChatStore, EMPTY_MESSAGES, type Message } from '../stores/chatStore'
+import { useMomentsStore } from '../stores/momentsStore'
 import { playSound } from '../utils/sound'
 import { normalizeChatText } from '../utils/text'
 import styles from '../styles/chat-room.module.css'
@@ -39,9 +41,66 @@ export function ChatRoom() {
     scrollToBottom()
   }, [messages, scrollToBottom])
 
+  // 手机键盘弹出/收起时自动滚动到底部
+  useEffect(() => {
+    const onResize = () => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', onResize)
+      return () => {
+        window.visualViewport?.removeEventListener('resize', onResize)
+      }
+    }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
   useEffect(() => {
     return () => {
       abortRef.current?.abort()
+    }
+  }, [])
+
+  // 朋友圈触发：在发送第一条消息后触发（名单内 + 冷却已过）
+  const momentAbortRef = useRef<AbortController | null>(null)
+  const momentTriggeredRef = useRef<string | null>(null)
+
+  const tryTriggerMoment = useCallback(() => {
+    if (!character || !characterId) return
+    // 同一角色本次会话只触发一次
+    if (momentTriggeredRef.current === characterId) return
+    momentTriggeredRef.current = characterId
+
+    if (!MOMENTS_CHARACTERS.includes(characterId)) return
+
+    const { canPost, addMoment } = useMomentsStore.getState()
+    if (!canPost(characterId)) return
+
+    // 后台静默生成朋友圈，不阻塞聊天
+    const controller = new AbortController()
+    momentAbortRef.current = controller
+    fetchMoment(
+      useChatStore.getState().getCustomPrompt(characterId) ?? character.systemPrompt,
+      character.timezone,
+      controller.signal,
+    )
+      .then((content) => {
+        if (content && !controller.signal.aborted) {
+          addMoment(characterId, content.trim())
+        }
+      })
+      .catch(() => {
+        // 生成失败静默忽略，不影响聊天
+        // 重置标记，下次发消息可以重试
+        momentTriggeredRef.current = null
+      })
+  }, [character, characterId])
+
+  // 组件卸载时取消请求
+  useEffect(() => {
+    return () => {
+      momentAbortRef.current?.abort()
     }
   }, [])
 
@@ -65,6 +124,22 @@ export function ChatRoom() {
           userText,
           abortRef.current.signal,
         )
+
+        // 根据回复字数模拟真实打字延迟：基础 1.2s + 每字 0.08s，上限 6s
+        const textLen = reply.length
+        const delay = Math.min(1200 + textLen * 80, 6000)
+
+        await new Promise<void>((resolve) => {
+          const timer = setTimeout(resolve, delay)
+          abortRef.current?.signal.addEventListener('abort', () => {
+            clearTimeout(timer)
+            resolve()
+          }, { once: true })
+        })
+
+        // 如果等待期间被取消则不添加消息
+        if (abortRef.current?.signal.aborted) return
+
         playSound('receive')
         addMessage(characterId, { role: 'assistant', content: normalizeChatText(reply) })
       } catch (err) {
@@ -95,6 +170,9 @@ export function ChatRoom() {
     const historyBeforeSend = useChatStore.getState().getMessages(characterId)
     addMessage(characterId, { role: 'user', content: trimmed })
     void requestReply(historyBeforeSend, trimmed, true)
+
+    // 发送第一条消息后触发朋友圈
+    tryTriggerMoment()
   }
 
   const handleRetry = () => {

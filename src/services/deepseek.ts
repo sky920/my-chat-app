@@ -1,6 +1,6 @@
 import type { Message } from '../stores/chatStore'
 import { buildSystemPrompt } from '../utils/characterContext'
-import { fetchMockReply } from './mockChat'
+import { fetchMockReply, fetchMockMoment } from './mockChat'
 
 const API_KEY = import.meta.env.VITE_DEEPSEEK_API_KEY as string | undefined
 const BASE_URL = import.meta.env.VITE_DEEPSEEK_BASE_URL ?? 'https://api.deepseek.com'
@@ -128,4 +128,49 @@ async function parseResponse(response: Response): Promise<string> {
     throw new Error('API 返回为空')
   }
   return content
+}
+
+/**
+ * 生成一条朋友圈内容
+ * 用角色的 systemPrompt 构建上下文，让 AI 生成符合人设的朋友圈文案
+ */
+export async function fetchMoment(
+  systemPrompt: string,
+  timezone: string,
+  signal?: AbortSignal,
+): Promise<string> {
+  const timeContext = new Date().toLocaleString('zh-CN', { timeZone: timezone })
+  const prompt = `${systemPrompt}\n\n现在你所在地的时间是 ${timeContext}。\n请发一条朋友圈，内容要符合你的性格和身份设定，像真实的朋友圈一样自然。只发文字，1~3句话，不要加引号或「朋友圈」等前缀。直接输出内容即可。`
+
+  const messages: ChatMessage[] = [
+    { role: 'system', content: prompt },
+    { role: 'user', content: '发一条朋友圈吧' },
+  ]
+
+  if (API_KEY && API_KEY !== 'sk-your-key-here') {
+    return callDeepSeekDirect(messages, signal)
+  }
+
+  if (IS_PROD) {
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages }),
+        signal,
+      })
+      if (!response.ok && (response.status === 404 || response.status === 405)) {
+        throw new Error('当前部署平台不支持服务端代理，无法生成朋友圈')
+      }
+      return parseResponse(response)
+    } catch (err) {
+      if (err instanceof Error && err.message.includes('Failed to fetch')) {
+        throw new Error('朋友圈生成失败：网络错误')
+      }
+      throw err
+    }
+  }
+
+  // mock 模式
+  return fetchMockMoment(signal)
 }

@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { characters } from '../characters'
+import { TabBar } from '../components/TabBar'
 import { useChatStore } from '../stores/chatStore'
 import { playSound } from '../utils/sound'
 import styles from '../styles/chat-list.module.css'
@@ -31,6 +32,9 @@ export function ChatList() {
 
   return (
     <div className={styles.page}>
+      <header className={styles.topBar}>
+        <span className={styles.topBarTitle}>消息</span>
+      </header>
       <div className={styles.list}>
         {sorted.map((character) => {
           const messages = chats[character.id]?.messages ?? []
@@ -65,6 +69,7 @@ export function ChatList() {
           )
         })}
       </div>
+      <TabBar />
     </div>
   )
 }
