@@ -7,4 +7,12 @@ export const MOMENTS_CHARACTERS: string[] = [
   'haruka',
   'xiaomei',
   'shian',
+  'alex',
+  'boyuan',
+  'yanhe',
+  'shuyi',
+  'linzhou',
+  'wanqing',
+  'xinning',
+  'qingci'
 ]

@@ -22,6 +22,7 @@ const TIMEZONE_LABELS: Record<string, string> = {
   'Asia/Tokyo': '东京时间',
   'Asia/Seoul': '首尔时间',
   'Europe/London': '伦敦时间',
+  'America/New_York': '纽约时间',
 }
 
 function getTimezoneLabel(timeZone: string): string {
